@@ -9,6 +9,21 @@
  *
  * Version: 2.0.5 Last revised: 10/05/2012
  *
+ * ========================================================
+ *
+ * tellibus fork by A. Bennouna
+ * 
+ * http://tellibus.com
+ *
+ * Adds support for user-specified control HTML elements.
+ *
+ * Using the following jQuery-consistent selectors
+ * with 'click' handlers:
+ *
+ * forwardButtonElement (default "false")
+ * backButtonElement (default "false")
+ * pauseButtonElement (default "false")
+ *
  */
 
 (function($,window,undefined) {
@@ -31,7 +46,10 @@ var defaults = {
 	pauseOnHover: true, //autoMode = loop|bounce only
 	pauseOnTouch: true, //" touch device only
 	pauseButton: false, //" generates an extra element to allow manual pausing 
-	startOnLoad: false //use this to delay starting of plugin until all page assets have loaded
+	startOnLoad: false, //use this to delay starting of plugin until all page assets have loaded
+  	forwardButtonElement: false, // use this to pass an HTML element that will act as a forward button
+  	backButtonElement: false, // use this to pass an HTML element that will act as a back button
+  	pauseButtonElement: false // use this to pass an HTML element that will act as a pause button
 };
 	
 $.simplyScroll = function(el,options) {
@@ -44,6 +62,9 @@ $.simplyScroll = function(el,options) {
 	this.isRTL = this.isHorizontal && $("html").attr('dir') == 'rtl';
 	this.isForwards = !this.isAuto  || (this.isAuto && this.o.direction.match(/^forwards|backwards$/)!==null && this.o.direction==defaults.direction) && !this.isRTL;
 	this.isLoop = this.isAuto && this.o.autoMode == 'loop' || !this.isAuto && this.o.manualMode == 'loop';
+
+    this.userControls = this.o.forwardButtonElement != '' && this.o.backButtonElement != '';
+    this.userPauseControl = this.o.pauseButtonElement != '';
 	
 	this.supportsTouch = ('createTouch' in document);
 	
@@ -59,18 +80,25 @@ $.simplyScroll = function(el,options) {
 		.wrap('<div class="simply-scroll-clip"></div>')
 		.parent().wrap('<div class="' + this.o.customClass + ' simply-scroll-container"></div>');
 	
-	if (!this.isAuto) { //button placeholders
-		this.$list.parent().parent()
-		.prepend('<div class="simply-scroll-forward"></div>')
-		.prepend('<div class="simply-scroll-back"></div>');
-	} else {
-		if (this.o.pauseButton) {
-			this.$list.parent().parent()
-			.prepend('<div class="simply-scroll-btn simply-scroll-btn-pause"></div>');
-			this.o.pauseOnHover = false;
-		}
-	}
-	
+    if (this.userPauseControl) {
+        this.o.pauseOnHover = false;
+        this.o.pauseButton = false;
+    }
+
+    if (!this.userControls) {
+        if (!this.isAuto) { //button placeholders
+            this.$list.parent().parent()
+            .prepend('<div class="simply-scroll-forward"></div>')
+            .prepend('<div class="simply-scroll-back"></div>');
+        } else {
+            if (this.o.pauseButton) {
+                this.$list.parent().parent()
+                .prepend('<div class="simply-scroll-btn simply-scroll-btn-pause"></div>');
+                this.o.pauseOnHover = false;
+            }
+        }
+    }
+    
 	//wrap an extra div around the whole lot if elements scrolled aren't equal
 	if ($items.length > 1) {
 		
@@ -114,8 +142,12 @@ $.simplyScroll.fn.extend({
 		this.$items = this.$list.children();
 		this.$clip = this.$list.parent(); //this is the element that scrolls
 		this.$container = this.$clip.parent();
-		this.$btnBack = $('.simply-scroll-back',this.$container);
-		this.$btnForward = $('.simply-scroll-forward',this.$container);
+		this.$btnBack = this.userControls ?
+            $(this.o.backButtonElement) :
+            $('.simply-scroll-back',this.$container);
+		this.$btnForward = this.userControls ?
+            $(this.o.forwardButtonElement) :
+            $('.simply-scroll-forward',this.$container);
 
 		if (!this.isHorizontal) {
 			this.itemMax = this.$items.eq(0).outerHeight(true); 
@@ -271,6 +303,37 @@ $.simplyScroll.fn.extend({
 			if (this.supportsTouch && this.$items.find('a').length) {
 				this.supportsTouch=false;
 			}
+
+			if (this.userControls) {
+                this.$btnBack 
+                    .bind('click', function(e) {
+                        e.preventDefault();
+                        if (!self.$btnBack.hasClass('moving') || self.paused) {
+        					self.paused = false;
+            				self.moveStop(self.movement);
+                            if (self.userPauseControl) {
+                                $(self.o.pauseButtonElement).removeClass('active');
+                            }
+                            self.funcMoveBack(e);
+                            self.$btnBack.addClass('moving');
+                            self.$btnForward.removeClass('moving');
+                        }
+                    });
+                this.$btnForward
+                    .bind('click', function(e) {
+                        e.preventDefault();
+                        if (!self.$btnForward.hasClass('moving') || self.paused) {
+        					self.paused = false;
+            				self.moveStop(self.movement);
+                            if (self.userPauseControl) {
+                                $(self.o.pauseButtonElement).removeClass('active');
+                            }
+                            self.funcMoveForward(e);
+                            self.$btnForward.addClass('moving');
+                            self.$btnBack.removeClass('moving');
+                        }
+                    });
+            }
 			
 			if (this.isAuto && this.o.pauseOnHover && !this.supportsTouch) {
 				this.$clip.bind(this.events.start,this.funcMovePause).bind(this.events.end,this.funcMoveResume);
@@ -305,9 +368,11 @@ $.simplyScroll.fn.extend({
 					self.paused = true;
 				});	
 			} else {
-				if (this.o.pauseButton) {
+				if (this.o.pauseButton || this.userPauseControl) {
 					
-					this.$btnPause = $(".simply-scroll-btn-pause",this.$container)
+                    $buttonElement = this.userPauseControl ? $(this.o.pauseButtonElement) : $(".simply-scroll-btn-pause",this.$container);
+
+					this.$btnPause = $buttonElement
 						.bind('click',function(e) {
 							e.preventDefault();
 							togglePause() ? $(this).addClass('active') : $(this).removeClass('active');
