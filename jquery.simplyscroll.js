@@ -181,10 +181,14 @@ $.simplyScroll.fn.extend({
 			if (this.isForwards) {
 				this.$items.slice(0,addItems).clone(true).appendTo(this.$list);
 				this.resetPosition = 0;
+                this.resetPositionForwards = addItems * this.itemMax;
+                this.resetPositionBackwards = this.$items.length * this.itemMax;
 				
 			} else {
 				this.$items.slice(-addItems).clone(true).prependTo(this.$list);
 				this.resetPosition = this.$items.length * this.itemMax;
+                this.resetPositionBackwards = 0;
+                this.resetPositionForwards = this.$items.length * this.itemMax;
 				//due to inconsistent RTL implementation force back to LTR then fake
 				if (this.isRTL) {
 					this.$clip[0].dir = 'ltr';
@@ -314,6 +318,7 @@ $.simplyScroll.fn.extend({
                             if (self.userPauseControl) {
                                 $(self.o.pauseButtonElement).removeClass('active');
                             }
+            				self.resetPosition = self.resetPositionBackwards;
                             self.funcMoveBack(e);
                             self.$btnBack.addClass('moving');
                             self.$btnForward.removeClass('moving');
@@ -328,6 +333,7 @@ $.simplyScroll.fn.extend({
                             if (self.userPauseControl) {
                                 $(self.o.pauseButtonElement).removeClass('active');
                             }
+            				self.resetPosition = self.resetPositionForwards;
                             self.funcMoveForward(e);
                             self.$btnForward.addClass('moving');
                             self.$btnBack.removeClass('moving');
