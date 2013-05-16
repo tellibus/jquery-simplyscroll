@@ -181,7 +181,7 @@ $.simplyScroll.fn.extend({
 			if (this.isForwards) {
 				this.$items.slice(0,addItems).clone(true).appendTo(this.$list);
 				this.resetPosition = 0;
-                this.resetPositionForwards = addItems * this.itemMax;
+                this.resetPositionForwards = 0;
                 this.resetPositionBackwards = this.$items.length * this.itemMax;
 				
 			} else {
