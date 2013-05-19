@@ -1,3 +1,6 @@
+# Information about this fork #
+[http://tellibus.com/lab/simplyScroll](http://tellibus.com/lab/simplyScroll)
+
 jQuery simplyScroll 2
 =====================
 
